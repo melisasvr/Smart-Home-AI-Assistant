@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home AI Assistant Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 60px 1fr;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main";
+            height: 100vh;
+        }
+
+        .header {
+            grid-area: header;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #5a67d8;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(72, 187, 120, 0.1);
+            border-radius: 20px;
+            border: 2px solid #48bb78;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #48bb78;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4a5568;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .main-content {
+            grid-area: main;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #5a67d8;
+        }
+
+        .suggestions-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .suggestion-item {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .suggestion-header {
+            display: flex;
+            justify-content: space-between; /* Corrected from 'between' to 'space-between' */
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .suggestion-confidence {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .suggestion-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-accept {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-decline {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .device-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .device-card:hover {
+            transform: scale(1.05);
+        }
+
+        .device-card.active {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .device-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin: 1rem 0;
+        }
+
+        .actions-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .log-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .timestamp {
+            color: #718096;
+            font-size: 0.875rem;
+        }
+
+        .satisfaction-stars {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .star {
+            color: #ffd700;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .star:hover {
+            transform: scale(1.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #48bb78;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1001;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🤖 Smart Home AI Assistant</h1>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>AI Active</span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="nav-item active" onclick="showSection('overview')">
+                <span>📊</span>
+                <span>Overview</span>
+            </div>
+            <div class="nav-item" onclick="showSection('suggestions')">
+                <span>💡</span>
+                <span>AI Suggestions</span>
+            </div>
+            <div class="nav-item" onclick="showSection('devices')">
+                <span>🏠</span>
+                <span>Devices</span>
+            </div>
+            <div class="nav-item" onclick="showSection('analytics')">
+                <span>📈</span>
+                <span>Analytics</span>
+            </div>
+            <div class="nav-item" onclick="showSection('learning')">
+                <span>🧠</span>
+                <span>ML Learning</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="overview-section" class="section">
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">AI Performance</h3>
+                            <span class="card-icon">🎯</span>
+                        </div>
+                        <div class="metric">
+                            <span>Predictive Accuracy</span>
+                            <span class="metric-value" id="predictive-accuracy">87.3%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Personalization Level</span>
+                            <span class="metric-value" id="personalization-level">72%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Average Satisfaction</span>
+                            <span class="metric-value" id="avg-satisfaction">4.2/5</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Activity Stats</h3>
+                            <span class="card-icon">📊</span>
+                        </div>
+                        <div class="metric">
+                            <span>Actions Logged</span>
+                            <span class="metric-value" id="total-actions">342</span>
+                        </div>
+                        <div class="metric">
+                            <span>Suggestions Made</span>
+                            <span class="metric-value" id="total-suggestions">89</span>
+                        </div>
+                        <div class="metric">
+                            <span>Success Rate</span>
+                            <span class="metric-value" id="success-rate">78.4%</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">System Status</h3>
+                            <span class="card-icon">⚙️</span>
+                        </div>
+                        <div class="metric">
+                            <span>ML Model Status</span>
+                            <span class="metric-value">✅ Trained</span>
+                        </div>
+                        <div class="metric">
+                            <span>Context Awareness</span>
+                            <span class="metric-value">85%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Learning Rate</span>
+                            <span class="metric-value">High</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Activity</h3>
+                        <span class="card-icon">🕒</span>
+                    </div>
+                    <div class="actions-log" id="actions-log">
+                        </div>
+                </div>
+            </div>
+
+            <div id="suggestions-section" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">AI-Powered Suggestions</h3>
+                        <span class="card-icon">💡</span>
+                    </div>
+                    <div class="suggestions-list" id="suggestions-list">
+                        </div>
+                </div>
+            </div>
+
+            <div id="devices-section" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Smart Devices</h3>
+                        <span class="card-icon">🏠</span>
+                    </div>
+                    <div class="device-grid" id="device-grid">
+                        </div>
+                </div>
+            </div>
+
+            <div id="analytics-section" class="section" style="display: none;">
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Usage Patterns</h3>
+                            <span class="card-icon">📈</span>
+                        </div>
+                        <canvas id="usage-chart" class="chart-container"></canvas>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Satisfaction Trends</h3>
+                            <span class="card-icon">😊</span>
+                        </div>
+                        <canvas id="satisfaction-chart" class="chart-container"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Behavioral Profile</h3>
+                        <span class="card-icon">👤</span>
+                    </div>
+                    <div id="behavior-profile">
+                        </div>
+                </div>
+            </div>
+
+            <div id="learning-section" class="section" style="display: none;">
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Machine Learning Status</h3>
+                            <span class="card-icon">🧠</span>
+                        </div>
+                        <div class="metric">
+                            <span>Training Data Points</span>
+                            <span class="metric-value" id="training-points">156</span>
+                        </div>
+                        <div class="metric">
+                            <span>Model Accuracy</span>
+                            <span class="metric-value">
+                                87.3%
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 87.3%"></div>
+                                </div>
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <span>Learning Effectiveness</span>
+                            <span class="metric-value">
+                                72%
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 72%"></div>
+                                </div>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Pattern Recognition</h3>
+                            <span class="card-icon">🔍</span>
+                        </div>
+                        <canvas id="patterns-chart" class="chart-container"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification">
+        <div id="notification-content"></div>
+    </div>
+
+    <div id="rating-modal" class="modal">
+        <div class="modal-content">
+            <h3>Rate this suggestion</h3>
+            <p id="rating-suggestion-text"></p>
+            <div class="satisfaction-stars" id="rating-stars">
+                <span class="star" onclick="rateSuggestion(1)">⭐</span>
+                <span class="star" onclick="rateSuggestion(2)">⭐</span>
+                <span class="star" onclick="rateSuggestion(3)">⭐</span>
+                <span class="star" onclick="rateSuggestion(4)">⭐</span>
+                <span class="star" onclick="rateSuggestion(5)">⭐</span>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn btn-accept" onclick="closeRatingModal()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated Smart Home AI Assistant Data
+        let aiData = {
+            stats: {
+                predictiveAccuracy: 87.3,
+                personalizationLevel: 72,
+                avgSatisfaction: 4.2,
+                totalActions: 342,
+                totalSuggestions: 89,
+                successRate: 78.4,
+                trainingPoints: 156
+            },
+            suggestions: [
+                {
+                    id: 1,
+                    type: 'coffee',
+                    message: 'Alex, based on your routine, would you like me to start brewing coffee?',
+                    confidence: 0.89,
+                    reasoning: 'Strong pattern match, typical morning coffee time',
+                    timestamp: new Date()
+                },
+                {
+                    id: 2,
+                    type: 'meeting_prep',
+                    message: 'Your Team Meeting starts in 8 minutes. Prepare now?',
+                    confidence: 0.95,
+                    reasoning: 'Calendar integration, high confidence',
+                    timestamp: new Date()
+                },
+                {
+                    id: 3,
+                    type: 'lights',
+                    message: 'It looks like you could use better lighting. Should I adjust the lights?',
+                    confidence: 0.67,
+                    reasoning: 'Low light conditions detected, moderate pattern match',
+                    timestamp: new Date()
+                }
+            ],
+            devices: {
+                'coffee_maker': { name: 'Coffee Maker', status: false, icon: '☕' },
+                'lights_office': { name: 'Office Lights', status: true, icon: '💡' },
+                'lights_living': { name: 'Living Room', status: false, icon: '🏠' },
+                'climate': { name: 'Climate Control', status: true, icon: '🌡️' },
+                'music': { name: 'Music System', status: false, icon: '🎵' },
+                'security': { name: 'Security System', status: true, icon: '🔒' }
+            },
+            actionHistory: [
+                { action: 'coffee', timestamp: new Date(Date.now() - 3600000), satisfaction: 5 },
+                { action: 'lights', timestamp: new Date(Date.now() - 7200000), satisfaction: 4 },
+                { action: 'meeting_prep', timestamp: new Date(Date.now() - 10800000), satisfaction: 5 },
+                { action: 'music', timestamp: new Date(Date.now() - 14400000), satisfaction: 3 },
+                { action: 'climate', timestamp: new Date(Date.now() - 18000000), satisfaction: 4 }
+            ]
+        };
+
+        let currentSuggestionForRating = null;
+        let charts = {};
+
+        // Initialize Dashboard
+        function initDashboard() {
+            updateOverview();
+            updateSuggestions();
+            updateDevices();
+            updateActionLog();
+            initCharts();
+
+            // Simulate real-time updates
+            setInterval(simulateRealtimeUpdate, 30000);
+        }
+
+        function showSection(sectionName) {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            // Use event.currentTarget instead of event.target.closest for direct click handling
+            const clickedNavItem = event.currentTarget;
+            clickedNavItem.classList.add('active');
+
+
+            // Show/hide sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionName + '-section').style.display = 'block';
+
+            // Update charts if analytics section
+            if (sectionName === 'analytics') {
+                setTimeout(initAnalyticsCharts, 100);
+            }
+            if (sectionName === 'learning') {
+                setTimeout(initLearningCharts, 100);
+            }
+        }
+
+        function updateOverview() {
+            document.getElementById('predictive-accuracy').textContent = aiData.stats.predictiveAccuracy + '%';
+            document.getElementById('personalization-level').textContent = aiData.stats.personalizationLevel + '%';
+            document.getElementById('avg-satisfaction').textContent = aiData.stats.avgSatisfaction + '/5';
+            document.getElementById('total-actions').textContent = aiData.stats.totalActions;
+            document.getElementById('total-suggestions').textContent = aiData.stats.totalSuggestions;
+            document.getElementById('success-rate').textContent = aiData.stats.successRate + '%';
+            document.getElementById('training-points').textContent = aiData.stats.trainingPoints;
+        }
+
+        function updateSuggestions() {
+            const container = document.getElementById('suggestions-list');
+            container.innerHTML = '';
+
+            aiData.suggestions.forEach(suggestion => {
+                const suggestionEl = document.createElement('div');
+                suggestionEl.className = 'suggestion-item';
+                suggestionEl.innerHTML = `
+                    <div class="suggestion-header">
+                        <strong>${suggestion.type.charAt(0).toUpperCase() + suggestion.type.slice(1)}</strong>
+                        <span class="suggestion-confidence">${Math.round(suggestion.confidence * 100)}%</span>
+                    </div>
+                    <p>${suggestion.message}</p>
+                    <small style="color: #666; margin-top: 0.5rem; display: block;">
+                        AI Reasoning: ${suggestion.reasoning}
+                    </small>
+                    <div class="suggestion-actions">
+                        <button class="btn btn-accept" onclick="acceptSuggestion(${suggestion.id})">Accept</button>
+                        <button class="btn btn-decline" onclick="declineSuggestion(${suggestion.id})">Decline</button>
+                    </div>
+                `;
+                container.appendChild(suggestionEl);
+            });
+        }
+
+        function updateDevices() {
+            const container = document.getElementById('device-grid');
+            container.innerHTML = '';
+
+            Object.entries(aiData.devices).forEach(([key, device]) => {
+                const deviceEl = document.createElement('div');
+                deviceEl.className = `device-card ${device.status ? 'active' : ''}`;
+                deviceEl.onclick = () => toggleDevice(key);
+                deviceEl.innerHTML = `
+                    <div class="device-icon">${device.icon}</div>
+                    <div>${device.name}</div>
+                    <small>${device.status ? 'ON' : 'OFF'}</small>
+                `;
+                container.appendChild(deviceEl);
+            });
+        }
+
+        function updateActionLog() {
+            const container = document.getElementById('actions-log');
+            container.innerHTML = '';
+
+            aiData.actionHistory.slice(0, 8).forEach(action => {
+                const logEl = document.createElement('div');
+                logEl.className = 'log-entry';
+                logEl.innerHTML = `
+                    <div>
+                        <strong>${action.action.charAt(0).toUpperCase() + action.action.slice(1)}</strong>
+                        <div class="timestamp">${action.timestamp.toLocaleTimeString()}</div>
+                    </div>
+                    <div class="satisfaction-stars">
+                        ${generateStars(action.satisfaction)}
+                    </div>
+                `;
+                container.appendChild(logEl);
+            });
+        }
+
+        function generateStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += i <= rating ? '⭐' : '☆';
+            }
+            return stars;
+        }
+
+        function acceptSuggestion(id) {
+            const suggestion = aiData.suggestions.find(s => s.id === id);
+            if (suggestion) {
+                currentSuggestionForRating = suggestion;
+                document.getElementById('rating-suggestion-text').textContent = suggestion.message;
+                document.getElementById('rating-modal').style.display = 'block';
+
+                // Execute the suggestion
+                executeSuggestion(suggestion);
+            }
+        }
+
+        function declineSuggestion(id) {
+            aiData.suggestions = aiData.suggestions.filter(s => s.id !== id);
+            updateSuggestions();
+            showNotification('Suggestion declined. AI is learning from your preference.', 'info');
+        }
+
+        function executeSuggestion(suggestion) {
+            // Simulate device action
+            if (suggestion.type === 'coffee') {
+                aiData.devices.coffee_maker.status = true;
+            } else if (suggestion.type === 'lights') {
+                aiData.devices.lights_office.status = true;
+            } else if (suggestion.type === 'meeting_prep') {
+                aiData.devices.lights_office.status = true;
+                aiData.devices.coffee_maker.status = true; // Assume coffee is part of meeting prep
+            }
+
+            updateDevices();
+            showNotification(`${suggestion.type.charAt(0).toUpperCase() + suggestion.type.slice(1)} activated!`, 'success');
+        }
+
+        function rateSuggestion(rating) {
+            if (currentSuggestionForRating) {
+                // Add to action history
+                aiData.actionHistory.unshift({
+                    action: currentSuggestionForRating.type,
+                    timestamp: new Date(),
+                    satisfaction: rating
+                });
+
+                // Update stats
+                aiData.stats.totalActions++;
+                updateActionLog();
+                updateOverview();
+
+                // Remove from suggestions
+                aiData.suggestions = aiData.suggestions.filter(s => s.id !== currentSuggestionForRating.id);
+                updateSuggestions();
+            }
+        }
+
+        function closeRatingModal() {
+            document.getElementById('rating-modal').style.display = 'none';
+            currentSuggestionForRating = null;
+        }
+
+        function toggleDevice(deviceKey) {
+            aiData.devices[deviceKey].status = !aiData.devices[deviceKey].status;
+            updateDevices();
+
+            // Log action
+            aiData.actionHistory.unshift({
+                action: deviceKey,
+                timestamp: new Date(),
+                satisfaction: Math.floor(Math.random() * 2) + 4 // 4 or 5
+            });
+
+            aiData.stats.totalActions++;
+            updateActionLog();
+            updateOverview();
+
+            const status = aiData.devices[deviceKey].status ? 'activated' : 'deactivated';
+            showNotification(`${aiData.devices[deviceKey].name} ${status}`, 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const content = document.getElementById('notification-content');
+
+            content.textContent = message;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function simulateRealtimeUpdate() {
+            // Simulate new suggestion
+            if (Math.random() > 0.7 && aiData.suggestions.length < 5) {
+                const newSuggestion = {
+                    id: Date.now(),
+                    type: ['coffee', 'lights', 'music', 'climate'][Math.floor(Math.random() * 4)],
+                    message: 'New AI suggestion based on your current context.',
+                    confidence: 0.6 + Math.random() * 0.3,
+                    reasoning: 'Real-time context analysis',
+                    timestamp: new Date()
+                };
+                aiData.suggestions.push(newSuggestion);
+                updateSuggestions(); // This was missing in your original snippet
+                showNotification(`New AI Suggestion: ${newSuggestion.message}`, 'info');
+            }
+
+            // Simulate slight changes in stats
+            aiData.stats.predictiveAccuracy = Math.min(95, aiData.stats.predictiveAccuracy + (Math.random() * 0.5 - 0.25)).toFixed(1);
+            aiData.stats.personalizationLevel = Math.min(90, aiData.stats.personalizationLevel + (Math.random() * 0.5 - 0.25)).toFixed(0);
+            aiData.stats.avgSatisfaction = Math.min(5, aiData.stats.avgSatisfaction + (Math.random() * 0.1 - 0.05)).toFixed(1);
+            aiData.stats.trainingPoints += Math.floor(Math.random() * 3);
+
+            updateOverview();
+            initCharts(); // Re-render charts with updated data
+        }
+
+        function initCharts() {
+            initAnalyticsCharts();
+            initLearningCharts();
+        }
+
+        function initAnalyticsCharts() {
+            // Usage Patterns Chart
+            const usageCtx = document.getElementById('usage-chart');
+            if (charts.usageChart) {
+                charts.usageChart.destroy(); // Destroy existing chart before re-creating
+            }
+            charts.usageChart = new Chart(usageCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Device Activations',
+                        data: [12, 19, 3, 5, 2, 3, 7], // Placeholder data
+                        borderColor: '#667eea',
+                        tension: 0.3,
+                        fill: false
+                    }, {
+                        label: 'Suggestions Accepted',
+                        data: [5, 8, 2, 4, 1, 2, 3], // Placeholder data
+                        borderColor: '#48bb78',
+                        tension: 0.3,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#333'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#666' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            ticks: { color: '#666' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                }
+            });
+
+            // Satisfaction Trends Chart
+            const satisfactionCtx = document.getElementById('satisfaction-chart');
+            if (charts.satisfactionChart) {
+                charts.satisfactionChart.destroy();
+            }
+            charts.satisfactionChart = new Chart(satisfactionCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Average Satisfaction',
+                        data: [4.0, 4.3, 4.1, aiData.stats.avgSatisfaction], // Use actual avgSatisfaction
+                        backgroundColor: '#764ba2',
+                        borderColor: '#764ba2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#333'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#666' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            min: 0,
+                            max: 5,
+                            ticks: { color: '#666' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                }
+            });
+
+            // Behavioral Profile
+            const behaviorProfileEl = document.getElementById('behavior-profile');
+            behaviorProfileEl.innerHTML = `
+                <p><strong>Common Actions:</strong> Lights On/Off, Coffee Brewing, Climate Adjustments</p>
+                <p><strong>Preferred Times:</strong> Mornings (6 AM - 9 AM), Evenings (6 PM - 10 PM)</p>
+                <p><strong>Response Tendency:</strong> ${aiData.stats.successRate > 70 ? 'Highly receptive to suggestions' : 'Moderately receptive'}</p>
+                <p><strong>Device Interaction:</strong> Primarily voice commands and automated triggers.</p>
+            `;
+        }
+
+        function initLearningCharts() {
+            // Pattern Recognition Chart (e.g., a radar chart for different pattern types)
+            const patternsCtx = document.getElementById('patterns-chart');
+            if (charts.patternsChart) {
+                charts.patternsChart.destroy();
+            }
+            charts.patternsChart = new Chart(patternsCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Routine Detection', 'Contextual Awareness', 'Preference Learning', 'Anomaly Detection'],
+                    datasets: [{
+                        label: 'Learning Strength',
+                        data: [
+                            aiData.stats.personalizationLevel * 0.8, // Example calculation based on existing stats
+                            aiData.stats.personalizationLevel * 1.1,
+                            aiData.stats.predictiveAccuracy * 0.9,
+                            60 + Math.random() * 20 // Simulated anomaly detection strength
+                        ],
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: '#667eea',
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#333'
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(0,0,0,0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            },
+                            pointLabels: {
+                                color: '#333',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                display: false,
+                                beginAtZero: true,
+                                max: 100 // Max value for radar points
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // Call initDashboard when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
